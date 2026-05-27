@@ -1,4 +1,5 @@
 ﻿using DaJet.Json;
+using DaJet.Metadata;
 using DaJet.Scripting;
 using DaJet.Scripting.Model;
 using DaJet.TypeSystem;
@@ -25,29 +26,47 @@ namespace DaJet.Mcp.Server.Tools
             JsonOptions.Converters.Add(new DictionaryJsonConverter());
         }
 
-        [McpServerTool, Description("Executes SQL query against database with parameters returning JSON result")]
+        private const string TOOL_DESCRIPTION =
+            "Executes a parameterized DaJet Script query to a registered 1C database data source. " +
+            "Returns an array of arbitrary JSON objects. Supports read-only SELECT queries only. " +
+            "Suitable for cross-database reports, and parameterized data access by 1C metadata object names.";
+
+        [McpServerTool, Description(TOOL_DESCRIPTION)]
         public CallToolResult ExecuteQuery(
-            [Description("Database name")] string database,
-            [Description("Query text")] string script,
-            [Description("Query parameters")] Dictionary<string, JsonElement> attributes)
+            [Description("Registered database name")] string database,
+            [Description("SELECT query text")] string script,
+            [Description("SELECT query parameters")] Dictionary<string, JsonElement> parameters)
         {
             CallToolResult result = new();
 
-            if (MetadataCache.Get(in database) is null)
+            MetadataProvider provider;
+
+            try
+            {
+                provider = MetadataCache.Get(in database);
+            }
+            catch (Exception exception)
+            {
+                result.IsError = true;
+                result.Content.Add(new TextContentBlock() { Text = exception.Message });
+                return result;
+            }
+
+            if (provider is null)
             {
                 result.IsError = true;
                 result.Content.Add(new TextContentBlock()
                 {
-                    Text = $"База данных '{database}' не найдена"
+                    Text = $"Database '{database}' is not found"
                 });
                 return result;
             }
 
-            Dictionary<string, object> parameters;
+            Dictionary<string, object> input;
 
             try
             {
-                parameters = GetParametersFromAttributes(in attributes);
+                input = GetInputFromParameters(in parameters);
             }
             catch (Exception exception)
             {
@@ -67,11 +86,11 @@ namespace DaJet.Mcp.Server.Tools
 
             try
             {
-                Script model = AssembleScriptWithParameters(in database, in query, in parameters);
+                Script model = AssembleScriptWithParameters(in database, in query, in input);
 
                 Interpreter executor = new(in model);
 
-                object json = executor.Execute(in parameters);
+                object json = executor.Execute(in input);
 
                 result.IsError = false;
                 result.Content.Add(new TextContentBlock()
@@ -92,32 +111,32 @@ namespace DaJet.Mcp.Server.Tools
 
             return result;
         }
-        private static Dictionary<string, object> GetParametersFromAttributes(in Dictionary<string, JsonElement> attributes)
+        private static Dictionary<string, object> GetInputFromParameters(in Dictionary<string, JsonElement> parameters)
         {
-            Dictionary<string, object> parameters = new();
+            Dictionary<string, object> input = new();
 
-            if (attributes is null || attributes.Count == 0)
+            if (parameters is null || parameters.Count == 0)
             {
-                return parameters;
+                return input;
             }
 
-            foreach (var attribute in attributes)
+            foreach (var parameter in parameters)
             {
-                string name = attribute.Key;
+                string name = parameter.Key;
 
-                JsonElement value = attribute.Value;
+                JsonElement value = parameter.Value;
 
                 if (value.ValueKind == JsonValueKind.True)
                 {
-                    parameters.Add(name, true);
+                    input.Add(name, true);
                 }
                 else if (value.ValueKind == JsonValueKind.False)
                 {
-                    parameters.Add(name, false);
+                    input.Add(name, false);
                 }
                 else if (value.ValueKind == JsonValueKind.Number)
                 {
-                    parameters.Add(name, value.GetDecimal());
+                    input.Add(name, value.GetDecimal());
                 }
                 else if (value.ValueKind == JsonValueKind.String)
                 {
@@ -125,11 +144,11 @@ namespace DaJet.Mcp.Server.Tools
 
                     if (Guid.TryParse(text, out Guid uuid))
                     {
-                        parameters.Add(name, uuid);
+                        input.Add(name, uuid);
                     }
                     else if (DateTime.TryParse(text, out DateTime datetime))
                     {
-                        parameters.Add(name, datetime);
+                        input.Add(name, datetime);
                     }
                     else if (text.StartsWith('{'))
                     {
@@ -138,16 +157,16 @@ namespace DaJet.Mcp.Server.Tools
                             throw new JsonException($"Input parameter '{name}' parse error. Incorrect value is {text}.");
                         }
 
-                        parameters.Add(name, entity);
+                        input.Add(name, entity);
                     }
                     else
                     {
-                        parameters.Add(name, text);
+                        input.Add(name, text);
                     }
                 }
             }
 
-            return parameters;
+            return input;
         }
         private static Script AssembleScriptWithParameters(in string database, in Script query, in Dictionary<string, object> parameters)
         {
