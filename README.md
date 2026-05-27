@@ -1,5 +1,7 @@
 # DaJet MCP Server <a href="https://hub.docker.com/r/zhichkin/dajet-mcp-server"><img width="32" height="32" alt="docker-logo" src="https://github.com/user-attachments/assets/e41122f3-8aae-4ea0-9bb3-289b874b5c4c" /></a>
 
+[Документация](https://github.com/zhichkin/dajet-mcp-server/blob/main/doc)
+
 MCP-сервер для получения и анализа метаданных и струкутуры баз данных 1С:Предприятие 8.
 
 Функционал сервера основан на использовании библиотеки [DaJet Metadata](https://github.com/zhichkin/dajet-metadata) и таким образом аналогичен функционалу [DaJet HTTP Server](https://github.com/zhichkin/dajet-http-server).
