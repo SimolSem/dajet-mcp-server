@@ -65,7 +65,7 @@
 
 ### 3. Открыть новое консольное окно для работы CURL.
 
-Перейти в каталог, где расположены выше созданные файлы. Выполнить команду CURL для открытия сессии SSE с MCP-сервером.
+Перейти в каталог, где расположены выше созданные файлы. Выполнить команду CURL для открытия сессии SSE с MCP-сервером. Используем ранее созданный файл ```init-mcp-session.json```.
 
 ```
 curl -v -X POST http://localhost:3000 -d @init-mcp-session.json -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream"
@@ -89,7 +89,7 @@ data: {"result":{"protocolVersion":"2025-03-26","capabilities":{"logging":{},"to
 
 ### 4. Подтвердить инициализацию сессии SSE.
 
-Выполнить следующую команду CURL, не забыв подставить нужный заголовок ```Mcp-Session-Id```.
+Выполнить следующую команду CURL, не забыв подставить нужный заголовок ```Mcp-Session-Id```. Используем ранее созданный файл ```init-mcp-confirm.json```.
 
 ```
 curl -v -X POST http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA" -d @init-mcp-confirm.json -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream"
@@ -109,6 +109,8 @@ curl -v -X POST http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA
 ```
 
 ### 5. Получить список доступных на MCP-сервере инструментов.
+
+Используем тот же ```Mcp-Session-Id``` и ранее созданный файл ```list-mcp-tools.json```.
 
 ```
 curl -v -X POST http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA" -d @list-mcp-tools.json -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream"
@@ -151,6 +153,8 @@ curl -v -X POST http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA
 
 ### 6. Выполнить инструмент ```execute_query``` на MCP-сервере.
 
+Используем тот же ```Mcp-Session-Id``` и ранее созданный файл ```call-mcp-tool.json```.
+
 ```
 curl -v -X POST http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA" -d @call-mcp-tool.json -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream"
 ```
@@ -186,6 +190,8 @@ data: {
 ```
 
 ### 7. Закрыть сессию SSE на MCP-сервере.
+
+Используем тот же ```Mcp-Session-Id```.
 
 ```
 curl -v -X DELETE http://localhost:3000 -H "Mcp-Session-Id: lL0iEfhTISUQOuIxpoTwLA"
