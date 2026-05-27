@@ -239,7 +239,7 @@ SELECT Ссылка, Код, Наименование
     "arguments": {
       "database": "MS_TEST",
       "script": "SELECT TOP 1 Ссылка, Код, Наименование FROM Справочник.Номенклатура WHERE Код = @Код",
-      "attributes": {
+      "parameters": {
         "Код": "333"
       }
     }
