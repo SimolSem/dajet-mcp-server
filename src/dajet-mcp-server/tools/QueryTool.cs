@@ -104,6 +104,7 @@ namespace DaJet.Mcp.Server.Tools
                 result.Content.Add(new TextContentBlock() { Text = exception.Message });
             }
 
+            //TODO: ?
             //ToolResultContentBlock result = new()
             //{
             //    StructuredContent = JsonDocument.Parse(json).RootElement
@@ -220,7 +221,7 @@ namespace DaJet.Mcp.Server.Tools
                         };
                     }
 
-                    use.Statements.Statements.Add(select);
+                    use.Statements.Add(select);
 
                     break; // use only the first SELECT statement - ignore the rest
                 }

@@ -3,7 +3,7 @@
     {
       "Name": "MS_TEST",
       "Type": "SqlServer",
-      "ConnectionString": "Data Source=MyServer;Initial Catalog=MyDatabase;Integrated Security=True;Encrypt=False;"
+      "ConnectionString": "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;"
     }
   ]
 }
