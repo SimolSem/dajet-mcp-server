@@ -64,6 +64,8 @@ docker run --name dajet-mcp-server --user=root -it -p 5000:5000 zhichkin/dajet-m
 
 ### Доступные инструменты MCP-сервера
 
+[Создание и подключение произвольных пользовательских MCP-инструментов на DaJet Script](https://github.com/zhichkin/dajet-mcp-server/tree/main/doc/dajet-script-mcp-tools)
+
 |Инструмент|Описание|Параметры|
 |---|---|---|
 |get_metadata_type_names|Получает список поддерживаемых типов объектов метаданных|Нет|
