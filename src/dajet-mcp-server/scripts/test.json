@@ -1,5 +1,5 @@
 {
-  "name": "get_product_by_code",
+  "name": "dajet_script_test",
   "title": "DaJet Script test tool",
-  "description": "Get product reference and name by its code"
+  "description": "Simple DaJet Script test"
 }

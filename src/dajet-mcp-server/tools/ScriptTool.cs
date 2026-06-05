@@ -109,6 +109,11 @@ namespace DaJet.Mcp.Server.Tools
                 }
             }
 
+            if (returnSchema is null)
+            {
+                return null; // invalid output expression
+            }
+
             foreach (DefineProperty property in returnSchema.Properties)
             {
                 string name = property.Name;
@@ -165,7 +170,11 @@ namespace DaJet.Mcp.Server.Tools
         }
         private static DefineStatement GetOutputSchema(in SyntaxNode expression)
         {
-            if (expression is VariableReference variable)
+            if (expression is ScalarExpression scalar)
+            {
+                return GetOutputSchema(in scalar);
+            }
+            else if (expression is VariableReference variable)
             {
                 return GetOutputSchema(in variable);
             }
@@ -176,15 +185,108 @@ namespace DaJet.Mcp.Server.Tools
 
             return null;
         }
+        private static DefineStatement GetOutputSchema(in ScalarExpression expression)
+        {
+            if (expression is null)
+            {
+                return null;
+            }
+
+            DefineStatement schema = new();
+
+            DefineProperty property = new() { Name = "value" };
+
+            if (expression.Token == Token.Boolean)
+            {
+                property.Type = DataType.Boolean;
+            }
+            else if (expression.Token == Token.Integer)
+            {
+                property.Type = DataType.Integer();
+            }
+            else if (expression.Token == Token.Decimal)
+            {
+                property.Type = DataType.Decimal();
+            }
+            else if (expression.Token == Token.DateTime)
+            {
+                property.Type = DataType.DateTime;
+            }
+            else if (expression.Token == Token.String)
+            {
+                property.Type = DataType.String();
+            }
+            else if (expression.Token == Token.Uuid)
+            {
+                property.Type = DataType.Uuid();
+            }
+            else if (expression.Token == Token.Entity)
+            {
+                property.Type = DataType.Entity();
+            }
+            else
+            {
+                property.Type = DataType.String();
+            }
+
+            schema.Properties.Add(property);
+
+            return schema;
+        }
         private static DefineStatement GetOutputSchema(in VariableReference expression)
         {
-            if (expression is VariableReference variable &&
-                variable.Binding is DeclareStatement declare)
+            if (expression.Binding is not DeclareStatement declare)
+            {
+                return null; // critical error - unbound variable
+            }
+
+            DataType type = declare.Type;
+
+            if (type.IsObject || type.IsArray)
             {
                 return declare.Binding;
             }
 
-            return null;
+            DefineStatement schema = new();
+
+            DefineProperty property = new() { Name = "value" };
+
+            if (type.IsBoolean)
+            {
+                property.Type = DataType.Boolean;
+            }
+            else if (type.IsInteger)
+            {
+                property.Type = DataType.Integer();
+            }
+            else if (type.IsDecimal)
+            {
+                property.Type = DataType.Decimal();
+            }
+            else if (type.IsDateTime)
+            {
+                property.Type = DataType.DateTime;
+            }
+            else if (type.IsString)
+            {
+                property.Type = DataType.String();
+            }
+            else if (type.IsUuid)
+            {
+                property.Type = DataType.Uuid();
+            }
+            else if (type.IsEntity)
+            {
+                property.Type = DataType.Entity();
+            }
+            else
+            {
+                property.Type = DataType.String();
+            }
+
+            schema.Properties.Add(property);
+
+            return schema;
         }
         private static DefineStatement GetOutputSchema(in FunctionExpression expression)
         {
@@ -261,7 +363,49 @@ namespace DaJet.Mcp.Server.Tools
 
                 object output = _executor.Execute(in parameters);
 
-                result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
+                JsonObject value = null;
+
+                if (output is null)
+                {
+                    value = new JsonObject() { ["value"] = null };
+                }
+                else if (output is bool boolean)
+                {
+                    value = new JsonObject() { ["value"] = boolean };
+                }
+                else if (output is int integer)
+                {
+                    value = new JsonObject() { ["value"] = integer };
+                }
+                else if (output is decimal number)
+                {
+                    value = new JsonObject() { ["value"] = number };
+                }
+                else if (output is DateTime datetime)
+                {
+                    value = new JsonObject() { ["value"] = datetime.ToString("yyyy-MM-ddTHH:mm:ss") };
+                }
+                else if (output is string text)
+                {
+                    value = new JsonObject() { ["value"] = text };
+                }
+                else if (output is Guid uuid)
+                {
+                    value = new JsonObject() { ["value"] = uuid.ToString() };
+                }
+                else if (output is Entity entity)
+                {
+                    value = new JsonObject() { ["value"] = entity.ToString() };
+                }
+
+                if (value is not null) // simple data types
+                {
+                    result.StructuredContent = JsonSerializer.SerializeToElement(value, JsonOptions);
+                }
+                else
+                {
+                    result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
+                }
 
                 result.IsError = false;
             }
