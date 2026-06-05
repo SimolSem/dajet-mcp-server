@@ -181,21 +181,7 @@ namespace DaJet.Mcp.Server.Tools
             if (expression is VariableReference variable &&
                 variable.Binding is DeclareStatement declare)
             {
-                DefineStatement schema = declare.Binding;
-
-                if (schema is not null)
-                {
-                    if (declare.Type.IsArray)
-                    {
-                        schema.Token = Token.Array;
-                    }
-                    else if (declare.Type.IsObject)
-                    {
-                        schema.Token = Token.Object;
-                    }
-                }
-
-                return schema;
+                return declare.Binding;
             }
 
             return null;
@@ -207,21 +193,7 @@ namespace DaJet.Mcp.Server.Tools
                 && function.Parameters[0] is VariableReference parameter
                 && parameter.Binding is DeclareStatement declare)
             {
-                DefineStatement schema = declare.Binding;
-
-                if (schema is not null)
-                {
-                    if (declare.Type.IsArray)
-                    {
-                        schema.Token = Token.Array;
-                    }
-                    else if (declare.Type.IsObject)
-                    {
-                        schema.Token = Token.Object;
-                    }
-                }
-
-                return schema;
+                return declare.Binding;
             }
 
             return null;
@@ -236,9 +208,8 @@ namespace DaJet.Mcp.Server.Tools
         {
             _executor = new Interpreter(in script);
 
-            Script model = typeof(Interpreter).GetField("_script",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-                .GetValue(_executor) as Script;
+            //TODO: получать схемы данных Script'а через сервисы библиотеки DaJet.Scripting
+            Script model = GetDaJetScript(in script);
 
             JsonObject input = InferInputSchema(in model);
             JsonElement inputSchema = JsonSerializer.Deserialize<JsonElement>(input);
@@ -261,19 +232,45 @@ namespace DaJet.Mcp.Server.Tools
 
             _metadata = new List<object>() { method }.AsReadOnly();
         }
+        private static Script GetDaJetScript(in string source)
+        {
+            if (!new Parser().TryParse(in source, out Script script, out string error))
+            {
+                throw new InvalidOperationException(error);
+            }
+
+            Scripting.Binder binder = new();
+            ISchemaProvider schema = new CacheableSchemaProvider();
+
+            if (!binder.TryBind(in script, in schema, out List<string> errors))
+            {
+                throw new InvalidOperationException(string.Join('\n', errors));
+            }
+
+            return script;
+        }
         public override ValueTask<CallToolResult> InvokeAsync(RequestContext<CallToolRequestParams> request, CancellationToken cancellationToken = default)
         {
             CallToolResult result = new();
 
-            IDictionary<string, JsonElement> input = request.Params?.Arguments;
+            try
+            {
+                IDictionary<string, JsonElement> input = request.Params?.Arguments;
 
-            Dictionary<string, object> parameters = GetInputFromParameters(in input);
+                Dictionary<string, object> parameters = GetInputFromParameters(in input);
 
-            object output = _executor.Execute(in parameters);
+                object output = _executor.Execute(in parameters);
 
-            result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
+                result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
 
-            result.IsError = false;
+                result.IsError = false;
+            }
+            catch (Exception error)
+            {
+                result.IsError = true;
+
+                result.Content.Add(new TextContentBlock() { Text = error.Message });
+            }
 
             return ValueTask.FromResult(result);
         }

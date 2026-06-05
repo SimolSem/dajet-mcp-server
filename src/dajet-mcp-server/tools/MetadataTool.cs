@@ -26,6 +26,25 @@ namespace DaJet.Mcp.Server.Tools
             JsonOptions.Converters.Add(new DataTypeJsonConverter());
         }
 
+        [McpServerTool, Description("Сбрасывает кэш метаданных базы данных (конфигурации)")]
+        public string ResetCache([Description("Имя базы данных (конфигурации)")] string database)
+        {
+            string message = string.Empty;
+
+            try
+            {
+                MetadataCache.Reset(in database);
+
+                message = $"Кэш '{database}' сброшен успешно.";
+            }
+            catch (Exception error)
+            {
+                message = $"Ошибка сброса кэша '{database}': {error.Message}.";
+            }
+
+            return message;
+        }
+
         [McpServerTool, Description("Получает список поддерживаемых типов объектов метаданных")]
         public List<string> GetMetadataTypeNames()
         {
@@ -106,6 +125,39 @@ namespace DaJet.Mcp.Server.Tools
             return metadata;
         }
 
+        [McpServerTool(UseStructuredContent = true), Description("Получает список полных имён объектов метаданных базы данных (конфигурации) по части имени (шаблону)")]
+        public List<string> SearchMetadataNames(
+            [Description("Имя базы данных (конфигурации)")] string database,
+            [Description("Шаблон поиска")] string pattern)
+        {
+            MetadataProvider provider = MetadataCache.Get(database)
+                ?? throw new McpException($"База данных '{database}' не найдена");
+
+            if (string.IsNullOrWhiteSpace(pattern))
+            {
+                throw new McpException($"Шаблон поиска пустой");
+            }
+
+            List<string> types = GetMetadataTypeNames();
+
+            List<string> result = new();
+
+            foreach (string type in types)
+            {
+                List<string> names = provider.GetMetadataNames(type);
+
+                foreach (string name in names)
+                {
+                    if (name.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add(string.Format("{0}.{1}", type, name));
+                    }
+                }
+            }
+
+            return result;
+        }
+
         [McpServerTool(UseStructuredContent = true), Description("Получает описание структуры объекта метаданных базы данных (конфигурации) по его типу и имени")]
         public MdObject GetMetadataObject(
             [Description("Имя базы данных (конфигурации)")] string database,
@@ -153,7 +205,8 @@ namespace DaJet.Mcp.Server.Tools
                 {
                     Name = property.Name,
                     Type = JsonSerializer.Serialize(property.Type, JsonOptions),
-                    Purpose = property.Purpose.ToString()
+                    Purpose = property.Purpose.ToString(),
+                    References = property.References
                 };
 
                 foreach (ColumnDefinition column in property.Columns)
@@ -168,6 +221,66 @@ namespace DaJet.Mcp.Server.Tools
 
                 target.Properties.Add(copy);
             }
+        }
+
+        [McpServerTool(UseStructuredContent = true), Description("Получает имена объектов метаданных по их идентификатору UUID для указанной базы данных (конфигурации)")]
+        public List<string> ResolveMetadataReferences(
+            [Description("Имя базы данных (конфигурации)")] string database,
+            [Description("Список идентификаторов объектов метаданных")] List<string> references)
+        {
+            MetadataProvider provider = MetadataCache.Get(database)
+                ?? throw new McpException($"База данных '{database}' не найдена");
+
+            List<Guid> list = new(references.Count);
+
+            foreach (string reference in references)
+            {
+                if (Guid.TryParse(reference, out Guid uuid))
+                {
+                    list.Add(uuid);
+                }
+            }
+
+            return provider.ResolveReferences(in list);
+        }
+
+        [McpServerTool(UseStructuredContent = true), Description("Получает описание структуры объекта метаданных базы данных (конфигурации) по его числовому коду")]
+        public MdObject GetMetadataObjectByCode(
+            [Description("Имя базы данных (конфигурации)")] string database,
+            [Description("Код типа объекта метаданных")] int code)
+        {
+            MetadataProvider provider = MetadataCache.Get(database)
+                ?? throw new McpException($"База данных '{database}' не найдена");
+
+            EntityDefinition entity = provider.GetMetadataObject(code);
+
+            if (entity is null)
+            {
+                throw new McpException($"Объект метаданных '{code}' не найден в базе данных '{database}'");
+            }
+
+            MdObject metadata = new()
+            {
+                Name = entity.Name,
+                DbName = entity.DbName
+            };
+
+            CopyProperties(entity.Properties, metadata);
+
+            foreach (EntityDefinition table in entity.Entities)
+            {
+                MdObject target = new()
+                {
+                    Name = table.Name,
+                    DbName = table.DbName
+                };
+
+                CopyProperties(table.Properties, in target);
+
+                metadata.TableParts.Add(target);
+            }
+
+            return metadata;
         }
     }
 }

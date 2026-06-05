@@ -10,6 +10,6 @@
 
         public List<MdColumn> Columns { get; set; } = new();
 
-        public List<string> References { get; set; } = new();
+        public List<Guid> References { get; set; } = new();
     }
 }

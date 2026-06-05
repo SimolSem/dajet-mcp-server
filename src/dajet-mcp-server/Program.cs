@@ -1,10 +1,6 @@
 using DaJet.Data;
 using DaJet.Mcp.Server.Tools;
-using DaJet.Scripting;
-using DaJet.Scripting.Model;
-using DaJet.TypeSystem;
 using DaJet.Utilities;
-using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System.Text;
 using System.Text.Json;
@@ -108,6 +104,7 @@ namespace DaJet.Mcp.Server
         }
         private static void InitializeDaJetScriptTool(in string scriptPath)
         {
+            string fileName = Path.GetFileName(scriptPath);
             string settingsPath = Path.ChangeExtension(scriptPath, "json");
 
             if (!File.Exists(settingsPath))
@@ -137,12 +134,12 @@ namespace DaJet.Mcp.Server
             }
             catch (Exception error)
             {
-                FileLogger.Default.Write($"[TOOL][ERROR][{settings.Name}] {scriptPath}");
+                FileLogger.Default.Write($"[TOOL][ERROR][{settings.Name}] {fileName}");
                 FileLogger.Default.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
                 return;
             }
 
-            FileLogger.Default.Write($"[TOOL][LOADED][{settings.Name}] {scriptPath}");
+            FileLogger.Default.Write($"[TOOL][LOADED][{settings.Name}] {fileName}");
         }
         private static bool TryGetToolSettings(in string settingsPath, out ToolSettings settings)
         {

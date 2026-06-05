@@ -10,7 +10,7 @@
     <AssemblyName>DaJet.Mcp.Server</AssemblyName>
     <AssemblyTitle>DaJet MCP Server</AssemblyTitle>
     <Title>DaJet MCP Server</Title>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>Zhichkin</Authors>
     <Description>MCP-сервер для получения и анализа метаданных 1С:Предприятие 8</Description>
     <Copyright>Zhichkin © 2026</Copyright>
