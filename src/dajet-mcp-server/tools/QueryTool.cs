@@ -88,6 +88,8 @@ namespace DaJet.Mcp.Server.Tools
             {
                 Script model = AssembleScriptWithParameters(in database, in query, in input);
 
+                model = new ScriptBuilder().FromScript(in model).Build();
+
                 Interpreter executor = new(in model);
 
                 object json = executor.Execute(in input);

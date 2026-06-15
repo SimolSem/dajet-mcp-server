@@ -1,5 +1,7 @@
 using DaJet.Data;
 using DaJet.Mcp.Server.Tools;
+using DaJet.Scripting;
+using DaJet.Scripting.Model;
 using DaJet.Utilities;
 using ModelContextProtocol.Server;
 using System.Text;
@@ -121,12 +123,7 @@ namespace DaJet.Mcp.Server
 
             try
             {
-                string script = null;
-
-                using (StreamReader reader = new(scriptPath, Encoding.UTF8))
-                {
-                    script = reader.ReadToEnd();
-                }
+                Script script = new ScriptBuilder().FromFile(in scriptPath).Build();
 
                 ScriptTool tool = new(in script, in settings);
 
