@@ -65,49 +65,21 @@ namespace DaJet.Mcp.Server.Tools
 
                 object output = _executor.Execute(in parameters);
 
-                JsonObject value = null;
+                JsonObject value = GetSimpleTypeResult(in output);
 
-                if (output is null)
-                {
-                    value = new JsonObject() { ["value"] = null };
-                }
-                else if (output is bool boolean)
-                {
-                    value = new JsonObject() { ["value"] = boolean };
-                }
-                else if (output is int integer)
-                {
-                    value = new JsonObject() { ["value"] = integer };
-                }
-                else if (output is decimal number)
-                {
-                    value = new JsonObject() { ["value"] = number };
-                }
-                else if (output is DateTime datetime)
-                {
-                    value = new JsonObject() { ["value"] = datetime.ToString("yyyy-MM-ddTHH:mm:ss") };
-                }
-                else if (output is string text)
-                {
-                    value = new JsonObject() { ["value"] = text };
-                }
-                else if (output is Guid uuid)
-                {
-                    value = new JsonObject() { ["value"] = uuid.ToString() };
-                }
-                else if (output is Entity entity)
-                {
-                    value = new JsonObject() { ["value"] = entity.ToString() };
-                }
-
-                if (value is not null) // simple data types
+                if (value is not null) // null, boolean, number, datetime, string, uuid, entity
                 {
                     result.StructuredContent = JsonSerializer.SerializeToElement(value, JsonOptions);
                 }
-                else
+                else // object, array
                 {
                     result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
                 }
+
+                result.Content.Add(new TextContentBlock()
+                {
+                    Text = result.StructuredContent.ToString()
+                });
 
                 result.IsError = false;
             }
@@ -119,6 +91,45 @@ namespace DaJet.Mcp.Server.Tools
             }
 
             return ValueTask.FromResult(result);
+        }
+        private static JsonObject GetSimpleTypeResult(in object output)
+        {
+            JsonObject value = null;
+
+            if (output is null)
+            {
+                value = new JsonObject() { ["value"] = null };
+            }
+            else if (output is bool boolean)
+            {
+                value = new JsonObject() { ["value"] = boolean };
+            }
+            else if (output is int integer)
+            {
+                value = new JsonObject() { ["value"] = integer };
+            }
+            else if (output is decimal number)
+            {
+                value = new JsonObject() { ["value"] = number };
+            }
+            else if (output is DateTime datetime)
+            {
+                value = new JsonObject() { ["value"] = datetime.ToString("yyyy-MM-ddTHH:mm:ss") };
+            }
+            else if (output is string text)
+            {
+                value = new JsonObject() { ["value"] = text };
+            }
+            else if (output is Guid uuid)
+            {
+                value = new JsonObject() { ["value"] = uuid.ToString() };
+            }
+            else if (output is Entity entity)
+            {
+                value = new JsonObject() { ["value"] = entity.ToString() };
+            }
+
+            return value;
         }
         private static Dictionary<string, object> GetInputFromParameters(in IDictionary<string, JsonElement> parameters)
         {

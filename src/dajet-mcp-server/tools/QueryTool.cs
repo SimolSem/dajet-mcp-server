@@ -92,12 +92,13 @@ namespace DaJet.Mcp.Server.Tools
 
                 Interpreter executor = new(in model);
 
-                object json = executor.Execute(in input);
+                object output = executor.Execute(in input);
 
                 result.IsError = false;
+                result.StructuredContent = JsonSerializer.SerializeToElement(output, JsonOptions);
                 result.Content.Add(new TextContentBlock()
                 {
-                    Text = json.ToString()
+                    Text = result.StructuredContent.ToString()
                 });
             }
             catch (Exception exception)
@@ -105,12 +106,6 @@ namespace DaJet.Mcp.Server.Tools
                 result.IsError = true;
                 result.Content.Add(new TextContentBlock() { Text = exception.Message });
             }
-
-            //TODO: ?
-            //ToolResultContentBlock result = new()
-            //{
-            //    StructuredContent = JsonDocument.Parse(json).RootElement
-            //};
 
             return result;
         }
@@ -233,17 +228,9 @@ namespace DaJet.Mcp.Server.Tools
 
             script.Statements.Add(new ReturnStatement()
             {
-                Expression = new FunctionExpression()
+                Expression = new VariableReference()
                 {
-                    Token = Token.UDF,
-                    Name = "JSON",
-                    Parameters =
-                    [
-                        new VariableReference()
-                        {
-                            Identifier = outputTable
-                        }
-                    ]
+                    Identifier = outputTable
                 }
             });
 
